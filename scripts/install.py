@@ -6,7 +6,6 @@
 #   "questionary>=2.1",
 # ]
 # [tool.uv]
-# exclude-newer = "2026-04-30"
 # ///
 """Miloco Installer — Python core logic.
 

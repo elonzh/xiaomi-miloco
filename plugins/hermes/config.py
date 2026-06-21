@@ -92,6 +92,11 @@ def get_plugin_config(ctx) -> dict:
 
 
 def load_shared_config(ctx) -> None:
+    # 读取已有配置（用户通过 miloco-cli config set / 手动写入的值），
+    # 用 DEFAULT_CONFIG 填充缺失字段，再合并 hermes config.yaml 的插件配置。
+    # 这样不会丢失已有的 server.token、model.omni.* 等关键配置。
+    existing = read_config_dict()
     merged = dict(DEFAULT_CONFIG)
+    deep_merge(merged, existing)
     deep_merge(merged, get_plugin_config(ctx))
     atomic_write_json(merged)
