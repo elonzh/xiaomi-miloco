@@ -10,10 +10,8 @@ def _isolate(monkeypatch, tmp_path):
     home = tmp_path / "miloco"
     home.mkdir()
     monkeypatch.setenv("MILOCO_HOME", str(home))
+    tools._NOTIFY_SESSION_KEY = ""
     return home
-
-
-# ------------------------------------------------------ _resolve_notify_target
 
 
 def test_resolve_notify_target_not_configured():
@@ -24,15 +22,10 @@ def test_resolve_notify_target_not_configured():
 
 
 def test_resolve_notify_target_configured():
-    from hermes import config
-
-    config.atomic_write_json({"notify_session_key": "sk-1"})
+    tools._NOTIFY_SESSION_KEY = "sk-1"
     res = tools._resolve_notify_target()
     assert res["needs_bind"] is False
     assert res["target"] == {"session_key": "sk-1"}
-
-
-# ------------------------------------------------------ _miloco_im_push_handler
 
 
 def test_im_push_no_channel_returns_needs_bind():
@@ -44,10 +37,9 @@ def test_im_push_no_channel_returns_needs_bind():
     assert res["bindHintExample"]
 
 
-def test_im_push_with_target_succeeds():
-    from hermes import config
-
-    config.atomic_write_json({"notify_session_key": "sk-1"})
+def test_im_push_with_target_succeeds(monkeypatch):
+    tools._NOTIFY_SESSION_KEY = "sk-1"
+    monkeypatch.setattr(tools, "_deliver_notification", lambda sk, msg: {"ok": True})
     raw = tools._miloco_im_push_handler({"message": "灯已开"})
     res = json.loads(raw)
     assert res["ok"] is True
@@ -90,34 +82,23 @@ def test_im_push_wraps_body_in_notification_tag(monkeypatch):
         "_deliver_notification",
         lambda sk, msg: captured.update(msg=msg) or {"ok": True},
     )
-    from hermes import config
-
-    config.atomic_write_json({"notify_session_key": "sk-x"})
+    tools._NOTIFY_SESSION_KEY = "sk-x"
     tools._miloco_im_push_handler({"message": "hello"})
     assert "<miloco-notification>hello</miloco-notification>" in captured["msg"]
 
 
-# ----------------------------------------------------- _miloco_notify_bind_handler
-
-
-def test_notify_bind_writes_config():
+def test_notify_bind_sets_key():
     raw = tools._miloco_notify_bind_handler({"sessionKey": "sk-xyz"})
     res = json.loads(raw)
     assert res["ok"] is True
     assert res["session_key"] == "sk-xyz"
-    from hermes import config
-
-    cfg = config.read_config_dict()
-    assert cfg["notify_session_key"] == "sk-xyz"
+    assert tools._NOTIFY_SESSION_KEY == "sk-xyz"
 
 
 def test_notify_bind_missing_session_key_fails():
     raw = tools._miloco_notify_bind_handler({})
     res = json.loads(raw)
     assert res["ok"] is False
-
-
-# --------------------------------------------------------------- register_tools
 
 
 def test_register_tools_registers_three():
@@ -131,6 +112,19 @@ def test_register_tools_registers_three():
     ctx = FakeCtx()
     tools.register_tools(ctx)
     assert ctx.tools == ["miloco_im_push", "miloco_notify_bind", "miloco_habit_suggest"]
+
+
+def test_register_tools_passes_notify_session_key():
+    class FakeCtx:
+        def __init__(self):
+            self.tools = []
+
+        def register_tool(self, *, name, toolset, schema, handler):
+            self.tools.append(name)
+
+    ctx = FakeCtx()
+    tools.register_tools(ctx, {"notify_session_key": "sk-x"})
+    assert tools._NOTIFY_SESSION_KEY == "sk-x"
 
 
 def test_habit_suggest_handler_delegates_to_suggestions():

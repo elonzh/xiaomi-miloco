@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 from pathlib import Path
@@ -6,27 +5,10 @@ from pathlib import Path
 __all__ = [
     "miloco_home",
     "ensure_miloco_home_env",
-    "config_file",
-    "read_config_dict",
-    "atomic_write_json",
-    "deep_merge",
     "get_plugin_config",
-    "load_shared_config",
-    "DEFAULT_CONFIG",
 ]
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_CONFIG = {
-    "debug": False,
-    "omni_model": "",
-    "omni_base_url": "",
-    "omni_api_key": "",
-    "notify_session_key": "",
-    "bridge_host": "127.0.0.1",
-    "bridge_port": 18789,
-    "bridge_auth_token": "",
-}
 
 
 def miloco_home() -> Path:
@@ -44,40 +26,6 @@ def ensure_miloco_home_env() -> Path:
     return home
 
 
-def config_file() -> Path:
-    return miloco_home() / "config.json"
-
-
-def read_config_dict() -> dict:
-    try:
-        text = config_file().read_text(encoding="utf-8")
-    except FileNotFoundError:
-        return {}
-    try:
-        return json.loads(text)
-    except (json.JSONDecodeError, ValueError):
-        logger.warning("failed to parse %s, returning empty config", config_file())
-        return {}
-
-
-def atomic_write_json(data: dict) -> None:
-    home = miloco_home()
-    home.mkdir(parents=True, exist_ok=True)
-    target = home / "config.json"
-    tmp = home / "config.json.tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, target)
-
-
-def deep_merge(target: dict, source: dict) -> None:
-    for key, value in source.items():
-        if key in target and isinstance(target[key], dict) and isinstance(value, dict):
-            deep_merge(target[key], value)
-        else:
-            target[key] = value
-
-
 def get_plugin_config(ctx) -> dict:
     try:
         from hermes_cli.config import cfg_get, load_config
@@ -86,17 +34,4 @@ def get_plugin_config(ctx) -> dict:
     except ImportError:
         return {}
     raw = cfg_get(cfg, "plugins", "entries", "miloco", default={})
-    if not isinstance(raw, dict):
-        return {}
-    return raw
-
-
-def load_shared_config(ctx) -> None:
-    # 读取已有配置（用户通过 miloco-cli config set / 手动写入的值），
-    # 用 DEFAULT_CONFIG 填充缺失字段，再合并 hermes config.yaml 的插件配置。
-    # 这样不会丢失已有的 server.token、model.omni.* 等关键配置。
-    existing = read_config_dict()
-    merged = dict(DEFAULT_CONFIG)
-    deep_merge(merged, existing)
-    deep_merge(merged, get_plugin_config(ctx))
-    atomic_write_json(merged)
+    return raw if isinstance(raw, dict) else {}

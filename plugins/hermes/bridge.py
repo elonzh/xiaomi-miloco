@@ -7,13 +7,15 @@ from aiohttp import web
 
 from . import trace
 from .agent_runner import AgentSessionPool
-from .config import read_config_dict
 
 __all__ = [
     "register_bridge",
 ]
 
 logger = logging.getLogger(__name__)
+
+_BRIDGE_HOST = "127.0.0.1"
+_BRIDGE_PORT = 18789
 
 
 def _ok(data=None):
@@ -48,13 +50,9 @@ def _run_turn_sync(agent, message, run_id, extra_system_prompt):
     return {"status": "ok", "error": None}
 
 
-def _agent_turn_blocking(pool, session_key, message, run_id, extra_system_prompt, cfg):
+def _agent_turn_blocking(pool, session_key, message, run_id, extra_system_prompt):
     agent = pool.get_or_create(
         session_key=session_key,
-        model=cfg.get("omni_model", ""),
-        api_key=cfg.get("omni_api_key", ""),
-        base_url=cfg.get("omni_base_url", ""),
-        provider=cfg.get("omni_provider", "openai"),
         extra_system_prompt=extra_system_prompt,
     )
     return _run_turn_sync(agent, message, run_id, extra_system_prompt)
@@ -66,7 +64,6 @@ async def _handle_agent(ctx, payload):
     trace_id = payload.get("traceId")
     extra_system_prompt = payload.get("extraSystemPrompt")
     run_id = payload.get("idempotencyKey") or _new_run_id()
-    cfg = read_config_dict()
     pool = AgentSessionPool.instance()
     loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(
@@ -77,7 +74,6 @@ async def _handle_agent(ctx, payload):
         message,
         run_id,
         extra_system_prompt,
-        cfg,
     )
     if trace_id:
         trace.register_trace_link(run_id, trace_id)
@@ -169,10 +165,10 @@ def _start_server_thread(app, host, port):
     return thread
 
 
-def register_bridge(ctx):
-    cfg = read_config_dict()
-    host = cfg.get("bridge_host", "127.0.0.1")
-    port = cfg.get("bridge_port", 18789)
+def register_bridge(ctx, plugin_cfg=None):
+    cfg = plugin_cfg or {}
+    host = cfg.get("bridge_host", _BRIDGE_HOST)
+    port = cfg.get("bridge_port", _BRIDGE_PORT)
     auth_token = cfg.get("bridge_auth_token", "")
     app = build_app(ctx, auth_token)
     _start_server_thread(app, host, port)

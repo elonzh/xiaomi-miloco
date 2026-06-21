@@ -2,7 +2,6 @@ import json
 import logging
 
 from . import schemas
-from .config import atomic_write_json, read_config_dict
 from .suggestions import apply_habit_action
 
 __all__ = [
@@ -11,6 +10,8 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
+_NOTIFY_SESSION_KEY = ""
+
 _BIND_HINT_EXAMPLE = {
     "not_configured": "您尚未设置 Miloco 通知频道，本条消息已临时发送到最近活跃的对话。回复「绑定通知频道」可将当前对话设为固定的 Miloco 通知频道，后续提醒、定时任务、告警等通知都将发送至此。",
     "configured_but_invalid": "您原先绑定的 Miloco 通知频道已失效，本条消息已临时发送到最近活跃的对话。请回复「绑定通知频道」重新绑定。",
@@ -18,10 +19,8 @@ _BIND_HINT_EXAMPLE = {
 
 
 def _resolve_notify_target():
-    cfg = read_config_dict()
-    key = cfg.get("notify_session_key") or ""
-    if key:
-        return {"target": {"session_key": key}, "needs_bind": False}
+    if _NOTIFY_SESSION_KEY:
+        return {"target": {"session_key": _NOTIFY_SESSION_KEY}, "needs_bind": False}
     return {
         "target": None,
         "needs_bind": True,
@@ -82,14 +81,13 @@ def _miloco_im_push_handler(args, **kwargs):
 
 
 def _miloco_notify_bind_handler(args, **kwargs):
+    global _NOTIFY_SESSION_KEY
     session_key = args.get("sessionKey") or kwargs.get("session_key")
     if not session_key:
         return json.dumps(
             {"ok": False, "error": "未指定 sessionKey 且当前上下文无 sessionKey"}
         )
-    cfg = read_config_dict()
-    cfg["notify_session_key"] = session_key
-    atomic_write_json(cfg)
+    _NOTIFY_SESSION_KEY = session_key
     return json.dumps({"ok": True, "session_key": session_key})
 
 
@@ -97,7 +95,10 @@ def _miloco_habit_suggest_handler(args, **kwargs):
     return json.dumps(apply_habit_action(args))
 
 
-def register_tools(ctx):
+def register_tools(ctx, plugin_cfg=None):
+    global _NOTIFY_SESSION_KEY
+    if plugin_cfg:
+        _NOTIFY_SESSION_KEY = plugin_cfg.get("notify_session_key", "")
     ctx.register_tool(
         name=schemas.MILOCO_IM_PUSH["name"],
         toolset="miloco",

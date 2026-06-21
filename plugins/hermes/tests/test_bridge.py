@@ -136,12 +136,10 @@ def test_register_bridge_starts_server_with_config(monkeypatch):
         return object()
 
     monkeypatch.setattr(bridge, "_start_server_thread", fake_start)
-    from hermes import config
-
-    config.atomic_write_json(
-        {"bridge_host": "0.0.0.0", "bridge_port": 19999, "bridge_auth_token": "tok"}
+    bridge.register_bridge(
+        FakeCtx(),
+        {"bridge_host": "0.0.0.0", "bridge_port": 19999, "bridge_auth_token": "tok"},
     )
-    bridge.register_bridge(FakeCtx())
     assert captured["host"] == "0.0.0.0"
     assert captured["port"] == 19999
     assert captured["app"] is not None

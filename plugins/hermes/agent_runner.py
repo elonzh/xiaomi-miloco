@@ -36,10 +36,6 @@ class AgentSessionPool:
         self,
         *,
         session_key,
-        model,
-        api_key,
-        base_url,
-        provider,
         extra_system_prompt=None,
     ):
         with self._lock:
@@ -55,14 +51,10 @@ class AgentSessionPool:
             db.create_session(
                 session_id=session_id,
                 source="miloco",
-                model=model,
+                model="",
                 user_id="miloco",
             )
             agent = AIAgent(
-                model=model,
-                api_key=api_key,
-                base_url=base_url,
-                provider=provider,
                 max_iterations=90,
                 disabled_toolsets=["cronjob"],
                 platform="miloco",
