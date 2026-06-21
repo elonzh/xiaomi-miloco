@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -13,6 +14,8 @@ __all__ = [
     "load_shared_config",
     "DEFAULT_CONFIG",
 ]
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG = {
     "debug": False,
@@ -30,12 +33,9 @@ def miloco_home() -> Path:
     env = os.environ.get("MILOCO_HOME")
     if env:
         return Path(env)
-    try:
-        import hermes_constants
+    import hermes_constants
 
-        return hermes_constants.get_hermes_home() / "miloco"
-    except ImportError:
-        return Path.home() / ".hermes" / "miloco"
+    return hermes_constants.get_hermes_home() / "miloco"
 
 
 def ensure_miloco_home_env() -> Path:
@@ -56,6 +56,7 @@ def read_config_dict() -> dict:
     try:
         return json.loads(text)
     except (json.JSONDecodeError, ValueError):
+        logger.warning("failed to parse %s, returning empty config", config_file())
         return {}
 
 

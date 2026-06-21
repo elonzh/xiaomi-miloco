@@ -127,8 +127,9 @@ def _make_handler(ctx, auth_token):
                     _fail(2001, "Action '{}' not found".format(action)),
                     status=404,
                 )
-        except Exception as exc:
-            return web.json_response(_fail(3000, str(exc)), status=500)
+        except Exception:
+            logger.exception("webhook handler error")
+            return web.json_response(_fail(3000, "internal error"), status=500)
         return web.json_response(_ok(result), status=200)
 
     return handle

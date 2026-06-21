@@ -1,5 +1,6 @@
 import gzip
 import json
+import re
 import threading
 import time
 from datetime import datetime
@@ -182,8 +183,6 @@ def _today_dir():
 def _sanitize_query_for_filename(query):
     if not query:
         return "system"
-    import re
-
     cleaned = re.sub(r"[\r\n\t]+", " ", query)
     cleaned = re.sub(r'[/\\:*?"<>|`]', "_", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()

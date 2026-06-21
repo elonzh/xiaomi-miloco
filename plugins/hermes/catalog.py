@@ -34,8 +34,3 @@ def get_catalog():
     _cached["text"] = text
     _cached["generated_at"] = now
     return text
-
-
-def _reset_cache():
-    _cached["text"] = ""
-    _cached["generated_at"] = 0.0

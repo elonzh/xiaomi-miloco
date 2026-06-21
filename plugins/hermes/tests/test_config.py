@@ -23,12 +23,15 @@ def test_miloco_home_default_derives_from_hermes_home(monkeypatch, tmp_path):
     assert config.miloco_home() == hermes_home / "miloco"
 
 
-def test_miloco_home_fallback_without_hermes(monkeypatch, tmp_path):
+def test_miloco_home_uses_hermes_constants(monkeypatch):
     monkeypatch.delenv("MILOCO_HOME", raising=False)
-    monkeypatch.delitem(sys.modules, "hermes_constants", raising=False)
-    fake_home = tmp_path / "userhome"
-    monkeypatch.setattr("hermes.config.Path.home", lambda: fake_home)
-    assert config.miloco_home() == fake_home / ".hermes" / "miloco"
+    import types
+    from pathlib import Path
+
+    fake = types.ModuleType("hermes_constants")
+    fake.get_hermes_home = lambda: Path("/fake/hermes")
+    monkeypatch.setitem(sys.modules, "hermes_constants", fake)
+    assert config.miloco_home() == Path("/fake/hermes/miloco")
 
 
 # ----------------------------------------------------------------- config_file

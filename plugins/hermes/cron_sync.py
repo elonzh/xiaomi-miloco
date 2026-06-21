@@ -47,28 +47,13 @@ CRON_TASKS = [
 
 def _reconcile_cron(cron_jobs):
     managed_names = {task["name"] for task in CRON_TASKS}
-    existing = {}
-    list_fn = getattr(cron_jobs, "list_jobs", None)
-    if callable(list_fn):
-        try:
-            for job in list_fn():
-                name = getattr(job, "name", None) or (
-                    job.get("name") if isinstance(job, dict) else None
-                )
-                if name:
-                    existing[name] = job
-        except Exception:
-            logger.exception("failed to list cron jobs")
+    upsert_fn = getattr(cron_jobs, "upsert", None)
     for task in CRON_TASKS:
-        upsert_fn = getattr(cron_jobs, "upsert", None)
         if callable(upsert_fn):
             try:
                 upsert_fn(task)
             except Exception:
                 logger.exception("failed to upsert cron task %s", task["name"])
-    for name, job in existing.items():
-        if name in managed_names:
-            continue
     return len(managed_names)
 
 

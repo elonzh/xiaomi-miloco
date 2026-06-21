@@ -5,9 +5,11 @@ from hermes import catalog
 
 @pytest.fixture(autouse=True)
 def _reset():
-    catalog._reset_cache()
+    catalog._cached["text"] = ""
+    catalog._cached["generated_at"] = 0.0
     yield
-    catalog._reset_cache()
+    catalog._cached["text"] = ""
+    catalog._cached["generated_at"] = 0.0
 
 
 def test_get_catalog_failure_returns_empty_string(monkeypatch):

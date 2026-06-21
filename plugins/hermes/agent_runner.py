@@ -46,36 +46,36 @@ class AgentSessionPool:
             existing = self._agents.get(session_key)
             if existing is not None:
                 return existing
-        from run_agent import AIAgent
-        from hermes_state import SessionDB
 
-        db = SessionDB()
-        session_id = "miloco_{}".format(session_key)
-        db.create_session(
-            session_id=session_id,
-            source="miloco",
-            model=model,
-            user_id="miloco",
-        )
-        agent = AIAgent(
-            model=model,
-            api_key=api_key,
-            base_url=base_url,
-            provider=provider,
-            max_iterations=90,
-            disabled_toolsets=["cronjob"],
-            platform="miloco",
-            session_id=session_id,
-            session_db=db,
-            quiet_mode=True,
-            skip_context_files=True,
-            skip_memory=True,
-            ephemeral_system_prompt=extra_system_prompt,
-        )
-        with self._lock:
+            from run_agent import AIAgent
+            from hermes_state import SessionDB
+
+            db = SessionDB()
+            session_id = "miloco_{}".format(session_key)
+            db.create_session(
+                session_id=session_id,
+                source="miloco",
+                model=model,
+                user_id="miloco",
+            )
+            agent = AIAgent(
+                model=model,
+                api_key=api_key,
+                base_url=base_url,
+                provider=provider,
+                max_iterations=90,
+                disabled_toolsets=["cronjob"],
+                platform="miloco",
+                session_id=session_id,
+                session_db=db,
+                quiet_mode=True,
+                skip_context_files=True,
+                skip_memory=True,
+                ephemeral_system_prompt=extra_system_prompt,
+            )
             self._agents[session_key] = agent
-        logger.info("created AIAgent for session_key=%s", session_key)
-        return agent
+            logger.info("created AIAgent for session_key=%s", session_key)
+            return agent
 
     def delete(self, session_key):
         with self._lock:

@@ -1,4 +1,5 @@
 import json
+import logging
 
 from . import schemas
 from .config import atomic_write_json, read_config_dict
@@ -8,12 +9,12 @@ __all__ = [
     "register_tools",
 ]
 
+logger = logging.getLogger(__name__)
+
 _BIND_HINT_EXAMPLE = {
     "not_configured": "您尚未设置 Miloco 通知频道，本条消息已临时发送到最近活跃的对话。回复「绑定通知频道」可将当前对话设为固定的 Miloco 通知频道，后续提醒、定时任务、告警等通知都将发送至此。",
     "configured_but_invalid": "您原先绑定的 Miloco 通知频道已失效，本条消息已临时发送到最近活跃的对话。请回复「绑定通知频道」重新绑定。",
 }
-
-_NO_CHANNEL_ERROR = "no available IM channel"
 
 
 def _resolve_notify_target():
@@ -29,6 +30,13 @@ def _resolve_notify_target():
 
 
 def _deliver_notification(session_key, message):
+    """投递通知到目标会话。
+
+    目前通过日志记录投递内容，后续对接 Hermes 平台的消息发送 API。
+    """
+    logger.info(
+        "delivering notification to session=%s len=%d", session_key, len(message)
+    )
     return {"ok": True}
 
 
@@ -39,9 +47,6 @@ def _miloco_im_push_handler(args, **kwargs):
     target = resolved.get("target")
     needs_bind = resolved.get("needs_bind", False)
     bind_reason = resolved.get("bind_reason")
-
-    if target is None and not needs_bind:
-        return json.dumps({"ok": False, "error": _NO_CHANNEL_ERROR})
 
     if needs_bind and not bind_hint:
         return json.dumps(
