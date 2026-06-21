@@ -89,6 +89,21 @@ def _miloco_habit_suggest_handler(args, **kwargs):
 
 
 def register_tools(ctx):
-    ctx.register_tool(schemas.MILOCO_IM_PUSH["name"], _miloco_im_push_handler)
-    ctx.register_tool(schemas.MILOCO_NOTIFY_BIND["name"], _miloco_notify_bind_handler)
-    ctx.register_tool(schemas.MILOCO_HABIT_SUGGEST["name"], _miloco_habit_suggest_handler)
+    ctx.register_tool(
+        name=schemas.MILOCO_IM_PUSH["name"],
+        toolset="miloco",
+        schema=schemas.MILOCO_IM_PUSH,
+        handler=_miloco_im_push_handler,
+    )
+    ctx.register_tool(
+        name=schemas.MILOCO_NOTIFY_BIND["name"],
+        toolset="miloco",
+        schema=schemas.MILOCO_NOTIFY_BIND,
+        handler=_miloco_notify_bind_handler,
+    )
+    ctx.register_tool(
+        name=schemas.MILOCO_HABIT_SUGGEST["name"],
+        toolset="miloco",
+        schema=schemas.MILOCO_HABIT_SUGGEST,
+        handler=_miloco_habit_suggest_handler,
+    )

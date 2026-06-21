@@ -68,22 +68,26 @@ def _reconcile_cron(cron_jobs):
 
 
 def _miloco_cli_handler(args):
-    argv = list(args or [])
-    sub = argv[0] if argv else "status"
+    sub = getattr(args, "miloco_command", None) or "status"
     if sub == "status":
         lines = ["managed cron tasks ({}):".format(len(CRON_TASKS))]
         for task in CRON_TASKS:
             lines.append("- {} [{}]".format(task["name"], task["schedule"]))
-        return "\n".join(lines)
-    if sub == "restart":
+        print("\n".join(lines))
+    elif sub == "restart":
         try:
             from cron import jobs as cron_jobs
 
             count = _reconcile_cron(cron_jobs)
-            return "reconciled {} managed cron tasks".format(count)
+            print("reconciled {} managed cron tasks".format(count))
         except ImportError:
-            return "cron module unavailable; nothing to restart"
-    return "unknown subcommand: {}\navailable: status, restart".format(sub)
+            print("cron module unavailable; nothing to restart")
+
+
+def _setup_cli(subparser):
+    subs = subparser.add_subparsers(dest="miloco_command")
+    subs.add_parser("status", help="Show Miloco managed cron tasks")
+    subs.add_parser("restart", help="Reconcile Miloco cron tasks")
 
 
 def register_cron_sync(ctx):
@@ -96,4 +100,9 @@ def register_cron_sync(ctx):
             _reconcile_cron(cron_jobs)
         except Exception:
             logger.exception("cron reconcile failed")
-    ctx.register_cli_command("miloco", _miloco_cli_handler)
+    ctx.register_cli_command(
+        name="miloco",
+        help="Miloco management",
+        setup_fn=_setup_cli,
+        handler_fn=_miloco_cli_handler,
+    )

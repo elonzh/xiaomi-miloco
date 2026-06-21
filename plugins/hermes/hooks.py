@@ -223,8 +223,8 @@ def _on_session_end(**kwargs):
 
 
 def register_hooks(ctx):
-    ctx.on("pre_llm_call", _on_pre_llm_call)
-    ctx.on("pre_tool_call", _on_pre_tool_call)
-    ctx.on("post_tool_call", _on_post_tool_call)
-    ctx.on("post_llm_call", _on_post_llm_call)
-    ctx.on("on_session_end", _on_session_end)
+    ctx.register_hook("pre_llm_call", _on_pre_llm_call)
+    ctx.register_hook("pre_tool_call", _on_pre_tool_call)
+    ctx.register_hook("post_tool_call", _on_post_tool_call)
+    ctx.register_hook("post_llm_call", _on_post_llm_call)
+    ctx.register_hook("on_session_end", _on_session_end)

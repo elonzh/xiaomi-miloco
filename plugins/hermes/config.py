@@ -71,12 +71,14 @@ def deep_merge(target: dict, source: dict) -> None:
 
 def get_plugin_config(ctx) -> dict:
     try:
-        from hermes_cli import config as cli_config
+        from hermes_cli.config import cfg_get, load_config
+        cfg = load_config()
     except ImportError:
         return {}
-    plugins = cli_config.config.get("plugins", {})
-    entries = plugins.get("entries", {})
-    return entries.get("miloco", {})
+    raw = cfg_get(cfg, "plugins", "entries", "miloco", default={})
+    if not isinstance(raw, dict):
+        return {}
+    return raw
 
 
 def load_shared_config(ctx) -> None:
