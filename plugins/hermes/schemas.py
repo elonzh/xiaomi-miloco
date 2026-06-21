@@ -1,6 +1,5 @@
 __all__ = [
     "MILOCO_IM_PUSH",
-    "MILOCO_NOTIFY_BIND",
     "MILOCO_HABIT_SUGGEST",
 ]
 
@@ -11,8 +10,6 @@ MILOCO_IM_PUSH = {
     "description": (
         "向主人推送一条 IM 通知消息。配合 miloco-notify skill 使用，"
         "用于主动告知主人重要事项或等待确认的内容。"
-        "若主人尚未绑定通知渠道（needsBind），可附带 bindHint "
-        "提示主人如何完成绑定后再推送。"
     ),
     "parameters": {
         "type": "object",
@@ -21,32 +18,8 @@ MILOCO_IM_PUSH = {
                 "type": "string",
                 "description": "要推送给主人的通知正文内容。",
             },
-            "bindHint": {
-                "type": "string",
-                "description": (
-                    "可选。当主人尚未绑定通知渠道（needsBind）时，"
-                    "提示主人完成绑定的引导文案。"
-                ),
-            },
         },
         "required": ["message"],
-    },
-}
-
-
-MILOCO_NOTIFY_BIND = {
-    "type": "function",
-    "name": "miloco_notify_bind",
-    "description": "绑定通知渠道。默认当前对话，也可指定 sessionKey。",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "sessionKey": {
-                "type": "string",
-                "description": "可选。要绑定的会话 sessionKey，默认为当前对话。",
-            },
-        },
-        "required": [],
     },
 }
 

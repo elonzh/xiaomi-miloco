@@ -5,103 +5,121 @@ import pytest
 from hermes import tools
 
 
+class _FakeSendResult:
+    def __init__(self, success=True, error=None):
+        self.success = success
+        self.error = error
+
+
+class _FakeAdapter:
+    def __init__(self, success=True, error=None):
+        self._success = success
+        self._error = error
+        self.sent = []
+
+    async def send(self, chat_id, content, metadata=None):
+        self.sent.append({"chat_id": chat_id, "content": content, "metadata": metadata})
+        return _FakeSendResult(success=self._success, error=self._error)
+
+
 @pytest.fixture(autouse=True)
 def _isolate(monkeypatch, tmp_path):
     home = tmp_path / "miloco"
     home.mkdir()
     monkeypatch.setenv("MILOCO_HOME", str(home))
-    tools._NOTIFY_SESSION_KEY = ""
-    return home
 
 
-def test_resolve_notify_target_not_configured():
-    res = tools._resolve_notify_target()
-    assert res["target"] is None
-    assert res["needs_bind"] is True
-    assert res["bind_reason"] == "not_configured"
+def test_im_push_delivers_via_adapter(monkeypatch):
+    adapter = _FakeAdapter()
+    monkeypatch.setattr(
+        tools, "_resolve_deliver_target", lambda cfg: (adapter, "oc_xxx", "")
+    )
+    plugin_cfg = {"deliver": "feishu", "deliver_extra": {"chat_id": "oc_xxx"}}
+    raw = tools._miloco_im_push_handler({"message": "灯已开"}, plugin_cfg=plugin_cfg)
+    res = json.loads(raw)
+    assert res["ok"] is True
+    assert len(adapter.sent) == 1
+    assert adapter.sent[0]["chat_id"] == "oc_xxx"
+    assert "<miloco-notification>灯已开</miloco-notification>" == adapter.sent[0]["content"]
 
 
-def test_resolve_notify_target_configured():
-    tools._NOTIFY_SESSION_KEY = "sk-1"
-    res = tools._resolve_notify_target()
-    assert res["needs_bind"] is False
-    assert res["target"] == {"session_key": "sk-1"}
+def test_im_push_with_thread_id(monkeypatch):
+    adapter = _FakeAdapter()
+    monkeypatch.setattr(
+        tools, "_resolve_deliver_target", lambda cfg: (adapter, "oc_xxx", "t_123")
+    )
+    plugin_cfg = {"deliver": "feishu", "deliver_extra": {"chat_id": "oc_xxx", "message_thread_id": "t_123"}}
+    raw = tools._miloco_im_push_handler({"message": "hello"}, plugin_cfg=plugin_cfg)
+    res = json.loads(raw)
+    assert res["ok"] is True
+    assert adapter.sent[0]["metadata"] == {"thread_id": "t_123"}
 
 
-def test_im_push_no_channel_returns_needs_bind():
-    raw = tools._miloco_im_push_handler({"message": "灯已开"})
+def test_im_push_no_target_returns_error(monkeypatch):
+    monkeypatch.setattr(tools, "_resolve_deliver_target", lambda cfg: (None, None, None))
+    raw = tools._miloco_im_push_handler({"message": "灯已开"}, plugin_cfg={})
     res = json.loads(raw)
     assert res["ok"] is False
-    assert res["needsBind"] is True
-    assert res["bindReason"] == "not_configured"
-    assert res["bindHintExample"]
+    assert "no deliver target" in res["error"]
 
 
-def test_im_push_with_target_succeeds(monkeypatch):
-    tools._NOTIFY_SESSION_KEY = "sk-1"
-    monkeypatch.setattr(tools, "_deliver_notification", lambda sk, msg: {"ok": True})
-    raw = tools._miloco_im_push_handler({"message": "灯已开"})
-    res = json.loads(raw)
-    assert res["ok"] is True
-    assert res["channel"] == "sk-1"
-
-
-def test_im_push_needs_bind_with_hint_sends(monkeypatch):
-    delivered = {}
-
-    def fake_deliver(session_key, message):
-        delivered["session_key"] = session_key
-        delivered["message"] = message
-        return {"ok": True}
-
-    monkeypatch.setattr(tools, "_deliver_notification", fake_deliver)
+def test_im_push_adapter_send_failure(monkeypatch):
+    adapter = _FakeAdapter(success=False, error="rate limited")
     monkeypatch.setattr(
-        tools,
-        "_resolve_notify_target",
-        lambda: {
-            "target": {"session_key": "fallback-1"},
-            "needs_bind": True,
-            "bind_reason": "not_configured",
-        },
+        tools, "_resolve_deliver_target", lambda cfg: (adapter, "oc_xxx", "")
     )
-    raw = tools._miloco_im_push_handler(
-        {"message": "灯已开", "bindHint": "请回复绑定通知频道"}
-    )
-    res = json.loads(raw)
-    assert res["ok"] is True
-    assert res["fallback"] is True
-    assert "<miloco-notification>" in delivered["message"]
-    assert "灯已开" in delivered["message"]
-    assert "请回复绑定通知频道" in delivered["message"]
-
-
-def test_im_push_wraps_body_in_notification_tag(monkeypatch):
-    captured = {}
-    monkeypatch.setattr(
-        tools,
-        "_deliver_notification",
-        lambda sk, msg: captured.update(msg=msg) or {"ok": True},
-    )
-    tools._NOTIFY_SESSION_KEY = "sk-x"
-    tools._miloco_im_push_handler({"message": "hello"})
-    assert "<miloco-notification>hello</miloco-notification>" in captured["msg"]
-
-
-def test_notify_bind_sets_key():
-    raw = tools._miloco_notify_bind_handler({"sessionKey": "sk-xyz"})
-    res = json.loads(raw)
-    assert res["ok"] is True
-    assert res["session_key"] == "sk-xyz"
-    assert tools._NOTIFY_SESSION_KEY == "sk-xyz"
-
-
-def test_notify_bind_missing_session_key_fails():
-    raw = tools._miloco_notify_bind_handler({})
+    plugin_cfg = {"deliver": "feishu", "deliver_extra": {"chat_id": "oc_xxx"}}
+    raw = tools._miloco_im_push_handler({"message": "test"}, plugin_cfg=plugin_cfg)
     res = json.loads(raw)
     assert res["ok"] is False
+    assert "rate limited" in res["error"]
 
 
-def test_register_tools_registers_three():
+def test_resolve_deliver_target_explicit_chat_id(monkeypatch):
+    adapter = _FakeAdapter()
+    monkeypatch.setattr(tools, "_resolve_platform_adapter", lambda name: (adapter, None))
+    cfg = {"deliver": "feishu", "deliver_extra": {"chat_id": "oc_abc", "message_thread_id": "t_1"}}
+    a, cid, tid = tools._resolve_deliver_target(cfg)
+    assert a is adapter
+    assert cid == "oc_abc"
+    assert tid == "t_1"
+
+
+def test_resolve_deliver_target_fallback_home_channel(monkeypatch):
+    adapter = _FakeAdapter()
+    monkeypatch.setattr(tools, "_resolve_platform_adapter", lambda name: (adapter, None))
+    monkeypatch.setattr(tools, "_resolve_home_channel", lambda name: ("oc_home", "t_home"))
+    cfg = {"deliver": "feishu", "deliver_extra": {}}
+    a, cid, tid = tools._resolve_deliver_target(cfg)
+    assert cid == "oc_home"
+    assert tid == "t_home"
+
+
+def test_resolve_deliver_target_no_deliver_returns_none(monkeypatch):
+    cfg = {"deliver": "", "deliver_extra": {}}
+    a, cid, tid = tools._resolve_deliver_target(cfg)
+    assert a is None
+    assert cid is None
+    assert tid is None
+
+
+def test_resolve_deliver_target_no_adapter_returns_none(monkeypatch):
+    monkeypatch.setattr(tools, "_resolve_platform_adapter", lambda name: (None, None))
+    cfg = {"deliver": "feishu", "deliver_extra": {"chat_id": "oc_xxx"}}
+    a, cid, tid = tools._resolve_deliver_target(cfg)
+    assert a is None
+
+
+def test_resolve_deliver_target_no_chat_id_no_home_channel(monkeypatch):
+    adapter = _FakeAdapter()
+    monkeypatch.setattr(tools, "_resolve_platform_adapter", lambda name: (adapter, None))
+    monkeypatch.setattr(tools, "_resolve_home_channel", lambda name: (None, None))
+    cfg = {"deliver": "feishu", "deliver_extra": {}}
+    a, cid, tid = tools._resolve_deliver_target(cfg)
+    assert a is None
+
+
+def test_register_tools_registers_two():
     class FakeCtx:
         def __init__(self):
             self.tools = []
@@ -111,20 +129,7 @@ def test_register_tools_registers_three():
 
     ctx = FakeCtx()
     tools.register_tools(ctx)
-    assert ctx.tools == ["miloco_im_push", "miloco_notify_bind", "miloco_habit_suggest"]
-
-
-def test_register_tools_passes_notify_session_key():
-    class FakeCtx:
-        def __init__(self):
-            self.tools = []
-
-        def register_tool(self, *, name, toolset, schema, handler):
-            self.tools.append(name)
-
-    ctx = FakeCtx()
-    tools.register_tools(ctx, {"notify_session_key": "sk-x"})
-    assert tools._NOTIFY_SESSION_KEY == "sk-x"
+    assert ctx.tools == ["miloco_im_push", "miloco_habit_suggest"]
 
 
 def test_habit_suggest_handler_delegates_to_suggestions():

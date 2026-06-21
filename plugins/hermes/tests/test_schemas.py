@@ -11,7 +11,6 @@ def test_im_push_name():
 def test_im_push_parameters():
     params = schemas.MILOCO_IM_PUSH["parameters"]["properties"]
     assert params["message"]["type"] == "string"
-    assert params["bindHint"]["type"] == "string"
 
 
 def test_im_push_required():
@@ -22,27 +21,6 @@ def test_im_push_has_type_function():
     assert schemas.MILOCO_IM_PUSH["type"] == "function"
     assert isinstance(schemas.MILOCO_IM_PUSH["description"], str)
     assert schemas.MILOCO_IM_PUSH["description"]  # non-empty
-
-
-# ----------------------------------------------------------- miloco_notify_bind
-
-
-def test_notify_bind_name():
-    assert schemas.MILOCO_NOTIFY_BIND["name"] == "miloco_notify_bind"
-
-
-def test_notify_bind_parameters():
-    params = schemas.MILOCO_NOTIFY_BIND["parameters"]["properties"]
-    assert params["sessionKey"]["type"] == "string"
-
-
-def test_notify_bind_optional():
-    assert schemas.MILOCO_NOTIFY_BIND["parameters"]["required"] == []
-
-
-def test_notify_bind_description():
-    assert schemas.MILOCO_NOTIFY_BIND["type"] == "function"
-    assert schemas.MILOCO_NOTIFY_BIND["description"]
 
 
 # --------------------------------------------------------- miloco_habit_suggest
