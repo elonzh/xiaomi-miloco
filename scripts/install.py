@@ -621,11 +621,8 @@ class Installer:
         if not build_sh.is_file():
             self.ui.fail(self.ui.i18n.t("error.dev_outside_repo"))
         self.ui.info(self.ui.i18n.t("install.dev_building"))
-        cmd = ["bash", str(build_sh)]
-        if self.agent == "hermes":
-            cmd.extend(["--packages", "miloco-miot,miloco,miloco-cli,web"])
         subprocess.run(
-            cmd,
+            ["bash", str(build_sh)],
             cwd=str(self.script_dir.parent),
             check=True,
         )
