@@ -42,21 +42,33 @@ graph TB
 - `miloco-cli` 已安装（与 OpenClaw 插件共用同一套 CLI/后端）
 - Python ≥ 3.10
 
-### 方式 1：CLI 安装（推荐）
+### 安装脚本（推荐）
 
-Hermes 支持从 Git 仓库子目录安装插件。一行命令完成：
+安装脚本自动完成插件复制 + 技能同步 + 插件启用：
 
 ```bash
-hermes plugins install XiaoMi/xiaomi-miloco/plugins/hermes --enable
+# 从仓库目录运行
+python3 plugins/hermes/scripts/install_plugin.py
 ```
 
-这会 clone 整个仓库，提取 `plugins/hermes/` 子目录，复制到 `~/.hermes/plugins/miloco/`，并自动启用。
+如果不在仓库目录内，脚本会自动 clone 仓库到临时目录完成安装。
 
-### 方式 2：手动拷贝
+脚本执行以下步骤：
+1. 定位仓库根目录（或自动 clone）
+2. 复制插件源码到 `~/.hermes/plugins/miloco/`
+3. 从 `plugins/skills/` 同步 16 个技能到 `~/.hermes/plugins/miloco/skills/`
+4. 执行 `hermes plugins enable miloco`
+
+### 手动安装
 
 ```bash
-# 将本目录复制到 ~/.hermes/plugins/miloco/
+# 1. 复制插件
 cp -r plugins/hermes ~/.hermes/plugins/miloco
+
+# 2. 同步技能（仓库内的技能源）
+cp -r plugins/skills ~/.hermes/plugins/miloco/skills
+
+# 3. 启用插件
 hermes plugins enable miloco
 ```
 
@@ -76,8 +88,10 @@ miloco-cli config set agent.webhook_url http://127.0.0.1:18789/miloco/webhook
 
 ### 更新插件
 
+重新运行安装脚本即可（会覆盖旧版本）：
+
 ```bash
-hermes plugins update miloco
+python3 plugins/hermes/scripts/install_plugin.py
 ```
 
 ### 卸载插件

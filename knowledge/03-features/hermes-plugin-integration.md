@@ -128,22 +128,22 @@ graph TB
 
 **为什么 Cron 用 Hermes 原生系统**：Hermes cron 是独立的、成熟的调度系统（`jobs.json` + 后台线程 `tick()`）。不自建调度器，遵循平台约定。`cron_sync.py` 在 `register(ctx)` 时做一次性 reconcile：列出已有 managed job（按 `[miloco:hermes]` tag 过滤）、缺失则 create、存在则 update、列表外的 managed job 清理掉，同时注册 `hermes miloco` CLI 命令供手动触发。
 
-### Skills 安装机制（pre-commit hook）
+### Skills 安装机制（安装脚本）
 
-Hermes 的安装流程是 `git clone` + `shutil.move`，**没有构建步骤**，也没有 pre-install / post-install 钩子可以执行脚本。`git clone` 获取的是仓库中已提交的文件，`.gitignore` 排除的文件不会出现在 clone 中。因此 skills 必须在**提交时**就存在于 `plugins/hermes/skills/`。
+Hermes 的安装流程是 `git clone` + `shutil.move`，**没有构建步骤**，也没有 pre-install / post-install 钩子。`git clone` 获取的是仓库中已提交的文件，`.gitignore` 排除的文件不会出现在 clone 中。
 
-方案：用 **pre-commit hook**（Python 脚本，跨平台）在每次提交前自动把 `plugins/skills/` 复制到 `plugins/hermes/skills/`，并 `git add` 一并提交。
+方案：用 **Python 安装脚本**（`plugins/hermes/scripts/install_plugin.py`）一次性完成插件复制 + 技能同步。脚本从仓库目录运行（或自动 clone），将 `plugins/hermes/*.py` 复制到 `~/.hermes/plugins/miloco/`，同时将 `plugins/skills/` 同步到 `~/.hermes/plugins/miloco/skills/`，最后执行 `hermes plugins enable miloco`。`plugins/hermes/skills/` 被 `.gitignore` 排除，不在仓库中维护副本。
 
 ```mermaid
 graph LR
-    A["开发者编辑<br/>plugins/skills/"] --> B["git commit"]
-    B --> C["pre-commit hook<br/>sync_skills.py"]
-    C --> D["自动复制<br/>plugins/skills/ →<br/>plugins/hermes/skills/"]
-    D --> E["git add 提交"]
-    E --> F["仓库含同步后的 skills"]
+    A["仓库目录<br/>plugins/hermes/ + plugins/skills/"] --> B["install_plugin.py"]
+    B --> C["复制插件<br/>→ ~/.hermes/plugins/miloco/"]
+    B --> D["同步技能<br/>plugins/skills/ →<br/>~/.hermes/plugins/miloco/skills/"]
+    C --> E["hermes plugins enable miloco"]
+    D --> E
 ```
 
-与 OpenClaw 的 `prebuild` 类比：OpenClaw 在**构建前**同步（skills 被 `.gitignore` 排除、不进仓库，发布到 npm 包里），Hermes 在**提交前**同步（skills **提交到仓库**，供 `git clone` 直接获取）。开发者只需编辑 `plugins/skills/`，hook 自动保持 `plugins/hermes/skills/` 同步。同步脚本与具体阈值不写，指向 `plugins/hermes/` 下的 pre-commit 脚本。
+与 OpenClaw 的 `prebuild` 类比：OpenClaw 在**构建前**同步（skills 被 `.gitignore` 排除、不进仓库，发布到 npm 包里），Hermes 在**安装时**同步（安装脚本运行时直接从仓库读取源 skills 目录，无需维护副本）。
 
 ### 与其他模块的关系
 

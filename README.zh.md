@@ -75,10 +75,12 @@ openclaw gateway restart
 curl -LsSf https://github.com/XiaoMi/xiaomi-miloco/releases/latest/download/install.sh | bash -s -- --skip-openclaw
 ```
 
-然后通过 CLI 安装 Hermes 插件：
+然后通过安装脚本安装 Hermes 插件（自动完成插件复制 + 技能同步）：
 
 ```bash
-hermes plugins install XiaoMi/xiaomi-miloco/plugins/hermes --enable
+git clone https://github.com/XiaoMi/xiaomi-miloco.git /tmp/xiaomi-miloco
+python3 /tmp/xiaomi-miloco/plugins/hermes/scripts/install_plugin.py
+rm -rf /tmp/xiaomi-miloco
 hermes gateway restart
 ```
 

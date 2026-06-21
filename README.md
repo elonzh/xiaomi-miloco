@@ -75,10 +75,12 @@ The shared backend and CLI are installed via the same `install.sh`, but with `--
 curl -LsSf https://github.com/XiaoMi/xiaomi-miloco/releases/latest/download/install.sh | bash -s -- --skip-openclaw
 ```
 
-Then install the Hermes plugin via CLI:
+Then install the Hermes plugin (this handles plugin copy + skill synchronization):
 
 ```bash
-hermes plugins install XiaoMi/xiaomi-miloco/plugins/hermes --enable
+git clone https://github.com/XiaoMi/xiaomi-miloco.git /tmp/xiaomi-miloco
+python3 /tmp/xiaomi-miloco/plugins/hermes/scripts/install_plugin.py
+rm -rf /tmp/xiaomi-miloco
 hermes gateway restart
 ```
 
