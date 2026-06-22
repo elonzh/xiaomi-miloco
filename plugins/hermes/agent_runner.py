@@ -74,11 +74,8 @@ class AgentSessionPool:
             agent = self._agents.pop(session_key, None)
         if agent is None:
             return False
-        try:
-            agent.close()
-            from agent.auxiliary_client import cleanup_stale_async_clients
+        agent.close()
+        from agent.auxiliary_client import cleanup_stale_async_clients
 
-            cleanup_stale_async_clients()
-        except Exception:
-            logger.exception("failed to close agent for %s", session_key)
+        cleanup_stale_async_clients()
         return True

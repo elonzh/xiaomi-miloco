@@ -86,10 +86,7 @@ def register_cron_sync(ctx):
     except ImportError:
         cron_jobs = None
     if cron_jobs is not None:
-        try:
-            _reconcile_cron(cron_jobs)
-        except Exception:
-            logger.exception("cron reconcile failed")
+        _reconcile_cron(cron_jobs)
     ctx.register_cli_command(
         name="miloco",
         help="Miloco management",

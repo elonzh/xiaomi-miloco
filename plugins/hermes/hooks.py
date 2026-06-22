@@ -153,10 +153,7 @@ def _load_home_profile_block():
 
 
 def _build_pending_suggestion_block():
-    try:
-        open_qs = load_open_questions()
-    except Exception:
-        return ""
+    open_qs = load_open_questions()
     if not open_qs:
         return ""
     items = "\n".join(
