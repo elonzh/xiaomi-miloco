@@ -9,6 +9,12 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
+def _resolve_runtime():
+    from hermes_cli.runtime_provider import resolve_runtime_provider
+
+    return resolve_runtime_provider()
+
+
 class AgentSessionPool:
     _instance = None
     _instance_lock = threading.Lock()
@@ -46,15 +52,21 @@ class AgentSessionPool:
             from run_agent import AIAgent
             from hermes_state import SessionDB
 
+            runtime = _resolve_runtime()
+
             db = SessionDB()
             session_id = "miloco_{}".format(session_key)
             db.create_session(
                 session_id=session_id,
                 source="miloco",
-                model="",
+                model=runtime.get("model", ""),
                 user_id="miloco",
             )
             agent = AIAgent(
+                model=runtime.get("model", ""),
+                api_key=runtime.get("api_key"),
+                base_url=runtime.get("base_url"),
+                provider=runtime.get("provider"),
                 max_iterations=90,
                 disabled_toolsets=["cronjob"],
                 platform="miloco",

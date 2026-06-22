@@ -16,14 +16,14 @@ Miloco 的 Hermes 插件（`plugins/hermes/`）是 OpenClaw 插件（`plugins/op
 
 Miloco 的 Hermes 插件（`plugins/hermes/__init__.py`）注册以下扩展：
 
-| 扩展类型     | 数量 | 职责概述                                                                                                     |
-| ------------ | ---- | ------------------------------------------------------------------------------------------------------------ |
-| **配置**     | —    | `$MILOCO_HOME` 路径解析（基于 `get_hermes_home()` 派生）、插件配置读取                              |
-| **Bridge**   | 1    | 自建 aiohttp HTTP 服务（默认 `:18789`），接收后端 `{ action, payload }` POST，实现与 OpenClaw 一致的固定契约 |
-| **Hooks**    | 2    | `pre_llm_call`（Profile 分级 + 上下文注入到 user message）；trace hooks（多个 agent 事件监听）               |
-| **Tools**    | 2    | `miloco_im_push`（通知推送）、`miloco_habit_suggest`（防骚扰状态机）——与 OpenClaw 同名同语义           |
-| **Cron**     | —    | 4 个受管 cron job 的一次性 reconcile + `hermes miloco` CLI 命令                                              |
-| **Skills**   | 16   | 逐个 `ctx.register_skill()` 注册，命名空间 `miloco:<skill-name>`                                             |
+| 扩展类型     | 职责概述                                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------ |
+| **配置**     | `$MILOCO_HOME` 路径解析（基于 `get_hermes_home()` 派生）、插件配置读取                              |
+| **Bridge**   | 自建 aiohttp HTTP 服务（默认 `:18789`），接收后端 `{ action, payload }` POST，实现与 OpenClaw 一致的固定契约 |
+| **Hooks**    | `pre_llm_call`（Profile 分级 + 上下文注入到 user message）；trace hooks（多个 agent 事件监听）               |
+| **Tools**    | `miloco_im_push`（通知推送）、`miloco_habit_suggest`（防骚扰状态机）——与 OpenClaw 同名同语义           |
+| **Cron**     | cron job reconcile（仅创建缺失任务）                                              |
+| **Skills**   | 逐个 `ctx.register_skill()` 注册，命名空间 `miloco:<skill-name>`                                             |
 
 详细注册结构与设计见 [Hermes Agent 集成](../03-features/hermes-plugin-integration.md)。
 

@@ -116,22 +116,6 @@ def check_hermes_health() -> bool:
     return False
 
 
-def check_miloco_cli() -> bool:
-    result = subprocess.run(
-        ["docker", "exec", "miloco-hermes-test", "hermes", "miloco", "status"],
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
-    output = result.stdout + result.stderr
-    print(f"[INFO] hermes miloco status:\n{output}")
-    if result.returncode == 0:
-        print("[OK] hermes miloco status command works")
-        return True
-    print(f"[FAIL] hermes miloco status failed (rc={result.returncode})")
-    return False
-
-
 def main() -> int:
     print("=== Miloco Hermes Plugin Integration Test ===\n")
 
@@ -140,7 +124,6 @@ def main() -> int:
         ("Miloco backend health", check_backend_health),
         ("Plugin loaded", check_plugin_loaded),
         ("Bridge contract", check_bridge_health),
-        ("hermes miloco CLI", check_miloco_cli),
     ]
 
     results = []

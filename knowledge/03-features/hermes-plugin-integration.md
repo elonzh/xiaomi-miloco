@@ -97,8 +97,8 @@ graph TB
 | **Tool**          | `tools.py`              | `miloco_im_push`（通知推送，通过 platform adapter 投递）、`miloco_habit_suggest`（防骚扰状态机） |
 | **Tool**          | `suggestions.py`        | `miloco_habit_suggest` 防骚扰状态机（`threading.Lock` + 原子写）                                                                    |
 | **数据获取**      | `catalog.py`            | 设备目录获取（`miloco-cli device catalog`，节流防抖），由 `hooks.py` 引用                                                          |
-| **Cron**          | `cron_sync.py`          | 4 个 cron job 的一次性 reconcile + 注册 CLI 命令 `hermes miloco`                                                                     |
-| **Skills**        | `skills_loader.py`      | 逐个 `ctx.register_skill()` 注册 16 个 skill，命名空间 `miloco:<skill-name>`                                                        |
+| **Cron**          | `cron_sync.py`          | cron job reconcile（仅创建缺失任务）                                                                     |
+| **Skills**        | `skills_loader.py`      | 逐个 `ctx.register_skill()` 注册，命名空间 `miloco:<skill-name>`                                                        |
 | **Schema**        | `schemas.py`            | 工具 JSON Schema 定义（OpenAI function-calling 格式）                                                                         |
 
 注册顺序的隐含依赖：① config 先于一切（写盘副作用，后端 / bridge 需要正确的 webhook_url 和 auth_bearer）→ ② skills 先于 hooks（`pre_llm_call` 注入的指令引用 skill 名称）→ ③ hooks 先于 tools（trace hooks 需在工具执行前就位）→ ⑦ bridge 最后启动（确保 tools/hooks/skills 已注册后 bridge 才接收请求）。
@@ -113,7 +113,7 @@ graph TB
 | `api.runtime.subagent.run()` + `waitForRun()`  | `AIAgent()` 构造 + `ThreadPoolExecutor` + `run_conversation()`   | cron 系统的 `run_job()` 是最佳参考样例                                                                     |
 | `api.registerTool(factory)` + TypeBox schema   | `ctx.register_tool(name, toolset, schema, handler)` + JSON Schema dict | 直接映射                                                                                                  |
 | `api.on("gateway_start")` → cron reconcile      | `register(ctx)` 中一次性 reconcile + `ctx.register_cli_command`   | Hermes cron 存 `~/.hermes/cron/jobs.json`，格式不同；用系统时区                                           |
-| trace hooks（7 个事件）                        | `ctx.register_hook`（pre/post_tool_call, pre/post_llm_call, subagent_start/stop, on_session_start/end） | 事件名不同但语义等价                                                                                      |
+| trace hooks                        | `ctx.register_hook`（pre/post_tool_call, pre/post_llm_call, subagent_start/stop, on_session_start/end） | 事件名不同但语义等价                                                                                      |
 | `contracts.skills: ["./skills"]`               | `ctx.register_skill(name, path)` 逐个注册                         | 插件 skill 只读，按 `miloco:skill-name` 命名空间访问，不出现在系统提示的 `<available_skills>` 索引中      |
 
 ### 关键设计决策
@@ -126,7 +126,7 @@ graph TB
 
 **为什么 `$MILOCO_HOME` 从 `get_hermes_home()` 派生**：不硬编码 `~/.hermes`，而是从 Hermes 官方的 `get_hermes_home()` 解析（尊重 `HERMES_HOME` 等自定义配置），再拼 `/miloco` 子目录。这样用户自定义了 Hermes Home 路径时，Miloco 数据自动跟随。`register(ctx)` 最早期调 `ensure_miloco_home_env()` 把解析结果写入 `os.environ`，确保后续 shell out 的后端 / CLI 子进程继承同一 `$MILOCO_HOME`，三层路径一致。
 
-**为什么 Cron 用 Hermes 原生系统**：Hermes cron 是独立的、成熟的调度系统（`jobs.json` + 后台线程 `tick()`）。不自建调度器，遵循平台约定。`cron_sync.py` 在 `register(ctx)` 时做一次性 reconcile：列出已有 managed job（按 `[miloco:hermes]` tag 过滤）、缺失则 create、存在则 update、列表外的 managed job 清理掉，同时注册 `hermes miloco` CLI 命令供手动触发。
+**为什么 Cron 用 Hermes 原生系统**：Hermes cron 是独立的、成熟的调度系统（`jobs.json` + 后台线程 `tick()`）。不自建调度器，遵循平台约定。`cron_sync.py` 在 `register(ctx)` 时做一次性 reconcile：检查受管 cron job 是否存在，缺失则创建，已存在则跳过。
 
 ### Skills 安装机制（安装脚本）
 

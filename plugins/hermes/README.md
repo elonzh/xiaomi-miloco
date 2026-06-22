@@ -145,7 +145,7 @@ plugins:
 | `tools.py` | `miloco_im_push` / `miloco_habit_suggest` |
 | `agent_runner.py` | `AgentSessionPool`（AIAgent 构造 + 复用） |
 | `bridge.py` | Webhook bridge HTTP 服务（同步 RPC） |
-| `cron_sync.py` | Cron job reconcile + `hermes miloco` CLI 命令 |
+| `cron_sync.py` | Cron job reconcile（仅创建缺失任务） |
 | `skills_loader.py` | Skills 注册 |
 
 ## 与 OpenClaw 插件的差异
@@ -158,7 +158,7 @@ plugins:
 | Agent turn 执行 | `api.runtime.subagent.run()` + `waitForRun()` | `AIAgent.run_conversation()` + `ThreadPoolExecutor` |
 | Cron | OpenClaw 网关 cron 系统 | Hermes cron（`~/.hermes/cron/jobs.json`） |
 | Skills 访问 | `<skill-name>` | `miloco:<skill-name>`（命名空间隔离） |
-| 后端管理 | `api.registerService()` | `hermes miloco restart` CLI 命令 |
+| 后端管理 | `api.registerService()` | `miloco-cli service restart`（supervisor 托管） |
 
 ## Webhook 契约
 

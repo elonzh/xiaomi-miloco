@@ -52,12 +52,18 @@ def test_pool_caches_agent(monkeypatch):
 
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
     monkeypatch.setitem(sys.modules, "hermes_state", fake_hermes_state)
+    monkeypatch.setattr(
+        agent_runner,
+        "_resolve_runtime",
+        lambda: {"model": "test-model", "api_key": "k", "base_url": "http://x", "provider": "openai"},
+    )
 
     pool = agent_runner.AgentSessionPool.instance()
     first = pool.get_or_create(session_key="sess-1")
     second = pool.get_or_create(session_key="sess-1")
     assert first is second
     assert len(created) == 1
+    assert created[0]["model"] == "test-model"
 
 
 def test_pool_delete_existing_closes_and_returns_true(monkeypatch):
@@ -90,6 +96,11 @@ def test_pool_delete_existing_closes_and_returns_true(monkeypatch):
     aux = types.ModuleType("agent.auxiliary_client")
     aux.cleanup_stale_async_clients = lambda: None
     monkeypatch.setitem(sys.modules, "agent.auxiliary_client", aux)
+    monkeypatch.setattr(
+        agent_runner,
+        "_resolve_runtime",
+        lambda: {"model": "test-model", "api_key": "k", "base_url": "http://x", "provider": "openai"},
+    )
 
     pool = agent_runner.AgentSessionPool.instance()
     pool.get_or_create(session_key="sess-2")
