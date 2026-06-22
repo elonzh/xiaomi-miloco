@@ -91,7 +91,7 @@ async def test_bridge_auth_passes_with_correct_token():
 
 async def test_handle_agent_returns_runid_status_and_registers_trace(monkeypatch):
     class FakeAgent:
-        def run_turn(self, message, run_id=None, extra_system_prompt=None):
+        def run_conversation(self, message, **kwargs):
             return {"status": "ok", "error": None}
 
     class FakePool:

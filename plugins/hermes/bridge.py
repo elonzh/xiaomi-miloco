@@ -34,11 +34,7 @@ def _new_run_id():
 
 
 def _run_turn_sync(agent, message, run_id, extra_system_prompt):
-    result = agent.run_turn(
-        message,
-        run_id=run_id,
-        extra_system_prompt=extra_system_prompt,
-    )
+    result = agent.run_conversation(message)
     if isinstance(result, dict):
         return {
             "status": result.get("status", "ok"),

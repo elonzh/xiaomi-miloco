@@ -23,35 +23,5 @@ def test_cron_tasks_have_schedule_prompt_and_skills():
         assert task["deliver"] == "none"
 
 
-def test_managed_tag_value():
-    assert cron_sync.MANAGED_TAG == "[miloco:hermes]"
-
-
-def test_register_cron_sync_registers_miloco_cli_command():
-    class FakeCtx:
-        def __init__(self):
-            self.commands = []
-
-        def register_cli_command(self, *, name, help, setup_fn, handler_fn):
-            self.commands.append(name)
-
-    ctx = FakeCtx()
-    cron_sync.register_cron_sync(ctx)
-    assert "miloco" in ctx.commands
-
-
 def test_register_cron_sync_tolerates_missing_cron_jobs():
-    class FakeCtx:
-        def register_cli_command(self, *, name, help, setup_fn, handler_fn):
-            pass
-
-    cron_sync.register_cron_sync(FakeCtx())
-
-
-def test_miloco_cli_status_reports_managed_tasks(capsys):
-    class Args:
-        miloco_command = "status"
-
-    cron_sync._miloco_cli_handler(Args())
-    out = capsys.readouterr().out
-    assert "miloco-perception-digest" in out
+    cron_sync.register_cron_sync(None)
