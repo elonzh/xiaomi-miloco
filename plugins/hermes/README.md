@@ -11,11 +11,11 @@ graph TB
     subgraph Gateway["Hermes Gateway"]
         subgraph Plugin["Miloco Plugin（Python）"]
             Hooks["pre_llm_call 注入"]
-            Tools["Tools（2个）"]
+            Tools["Tools"]
             Bridge["Bridge HTTP :18789"]
             Trace["Trace Hooks"]
             Cron["Cron reconcile"]
-            Skills["Skills（16个）"]
+            Skills["Skills"]
         end
         AIAgent["AIAgent.run_conversation()"]
     end
@@ -137,7 +137,7 @@ plugins:
 | 模块 | 职责 |
 |------|------|
 | `config.py` | `$MILOCO_HOME` 解析、插件配置读取 |
-| `schemas.py` | 2 个工具的 JSON Schema |
+| `schemas.py` | 工具 JSON Schema |
 | `suggestions.py` | 习惯建议防骚扰状态机 |
 | `catalog.py` | 设备目录获取（5s 节流） |
 | `trace.py` | Turn trace buffer + GC + gzip 落盘 |
@@ -146,7 +146,7 @@ plugins:
 | `agent_runner.py` | `AgentSessionPool`（AIAgent 构造 + 复用） |
 | `bridge.py` | Webhook bridge HTTP 服务（同步 RPC） |
 | `cron_sync.py` | Cron job reconcile + `hermes miloco` CLI 命令 |
-| `skills_loader.py` | 16 个 Skills 注册 |
+| `skills_loader.py` | Skills 注册 |
 
 ## 与 OpenClaw 插件的差异
 

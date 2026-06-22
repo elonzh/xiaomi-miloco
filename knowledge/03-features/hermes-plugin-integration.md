@@ -42,10 +42,10 @@ graph TB
         subgraph Plugin["Miloco Plugin（Python，驻网关进程内）"]
             PreLLM["pre_llm_call 注入"]
             TraceHooks["Trace Hooks"]
-            ToolsBox["Tools（3 个）"]
+            ToolsBox["Tools"]
             BridgeBox["Bridge HTTP 服务<br/>:18789"]
             CronSync["Cron reconcile"]
-            SkillsBox["Skills（16 个）"]
+            SkillsBox["Skills"]
         end
         AIAgent["AIAgent.run_conversation()<br/>（同步执行 turn）"]
     end
@@ -99,7 +99,7 @@ graph TB
 | **数据获取**      | `catalog.py`            | 设备目录获取（`miloco-cli device catalog`，节流防抖），由 `hooks.py` 引用                                                          |
 | **Cron**          | `cron_sync.py`          | 4 个 cron job 的一次性 reconcile + 注册 CLI 命令 `hermes miloco`                                                                     |
 | **Skills**        | `skills_loader.py`      | 逐个 `ctx.register_skill()` 注册 16 个 skill，命名空间 `miloco:<skill-name>`                                                        |
-| **Schema**        | `schemas.py`            | 2 个工具的 JSON Schema 定义（OpenAI function-calling 格式）                                                                         |
+| **Schema**        | `schemas.py`            | 工具 JSON Schema 定义（OpenAI function-calling 格式）                                                                         |
 
 注册顺序的隐含依赖：① config 先于一切（写盘副作用，后端 / bridge 需要正确的 webhook_url 和 auth_bearer）→ ② skills 先于 hooks（`pre_llm_call` 注入的指令引用 skill 名称）→ ③ hooks 先于 tools（trace hooks 需在工具执行前就位）→ ⑦ bridge 最后启动（确保 tools/hooks/skills 已注册后 bridge 才接收请求）。
 
