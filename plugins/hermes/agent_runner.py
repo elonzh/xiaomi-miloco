@@ -10,9 +10,17 @@ logger = logging.getLogger(__name__)
 
 
 def _resolve_runtime():
+    from hermes_cli.config import cfg_get, load_config
     from hermes_cli.runtime_provider import resolve_runtime_provider
 
-    return resolve_runtime_provider()
+    runtime = resolve_runtime_provider()
+    cfg = load_config()
+    model = cfg_get(cfg, "model", "default", default="")
+    if not model:
+        import os
+        model = os.getenv("HERMES_MODEL", "")
+    runtime["model"] = model
+    return runtime
 
 
 class AgentSessionPool:
