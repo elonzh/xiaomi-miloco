@@ -123,9 +123,8 @@ def _deliver_notification(content: str, plugin_cfg: Dict[str, Any]) -> Dict[str,
 
 def _miloco_im_push_handler(args, **kwargs):
     message = args.get("message", "")
-    deliver_message = "<miloco-notification>" + message + "</miloco-notification>"
     plugin_cfg = kwargs.get("plugin_cfg") or {}
-    result = _deliver_notification(deliver_message, plugin_cfg)
+    result = _deliver_notification(message, plugin_cfg)
     return json.dumps(result)
 
 

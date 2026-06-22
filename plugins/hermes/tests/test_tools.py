@@ -40,10 +40,7 @@ def test_im_push_delivers_via_adapter(monkeypatch):
     assert res["ok"] is True
     assert len(adapter.sent) == 1
     assert adapter.sent[0]["chat_id"] == "oc_xxx"
-    assert (
-        "<miloco-notification>灯已开</miloco-notification>"
-        == adapter.sent[0]["content"]
-    )
+    assert adapter.sent[0]["content"] == "灯已开"
 
 
 def test_im_push_with_thread_id(monkeypatch):
